@@ -23,11 +23,16 @@ const KEY = "paperplay.reader.prefs";
 export function useReaderPrefs() {
   const [prefs, setPrefs] = useState<ReaderPrefs>(DEFAULT_PREFS);
   const [hydrated, setHydrated] = useState(false);
+  const [themeExplicit, setThemeExplicit] = useState(false);
 
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(KEY);
-      if (raw) setPrefs({ ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<ReaderPrefs>) });
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<ReaderPrefs>;
+        setPrefs({ ...DEFAULT_PREFS, ...parsed });
+        if (parsed.theme) setThemeExplicit(true);
+      }
     } catch {
       /* ignore corrupt prefs */
     }
@@ -35,6 +40,7 @@ export function useReaderPrefs() {
   }, []);
 
   const update = useCallback((patch: Partial<ReaderPrefs>) => {
+    if (patch.theme) setThemeExplicit(true);
     setPrefs((prev) => {
       const next = { ...prev, ...patch };
       try {
@@ -46,7 +52,7 @@ export function useReaderPrefs() {
     });
   }, []);
 
-  return { prefs, update, hydrated };
+  return { prefs, update, hydrated, themeExplicit };
 }
 
 /** Lightweight "minutes read" + streak widget state, kept on the device. */
