@@ -180,7 +180,11 @@ function SettingsPage() {
                     Last sync {relativeTime(source?.last_sync_at ?? null)}
                   </p>
                 </div>
-                <Button variant="secondary" className="rounded-full" onClick={() => setSyncOpen(true)}>
+                <Button
+                  variant="secondary"
+                  className="rounded-full"
+                  onClick={() => setSyncOpen(true)}
+                >
                   {source?.status === "connected" ? "Manage" : "Connect"}
                 </Button>
               </div>

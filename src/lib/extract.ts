@@ -30,7 +30,10 @@ function titleCaseFromFilename(name: string) {
 
 /** Turn a flat block of text into readable, headed sections. */
 export function sectionize(raw: string): DraftSection[] {
-  const normalized = raw.replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  const normalized = raw
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (!normalized) return [];
 
   const lines = normalized.split("\n");
@@ -62,7 +65,8 @@ export function sectionize(raw: string): DraftSection[] {
     const line = lines[i] ?? "";
     const prevBlank = i === 0 || !(lines[i - 1] ?? "").trim();
     const nextBlank = i === lines.length - 1 || !(lines[i + 1] ?? "").trim();
-    const heading = prevBlank && (nextBlank || /^#{1,4}\s/.test(line.trim())) ? isHeading(line) : null;
+    const heading =
+      prevBlank && (nextBlank || /^#{1,4}\s/.test(line.trim())) ? isHeading(line) : null;
 
     if (heading) {
       flush();

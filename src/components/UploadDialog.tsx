@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, FileText, Loader2, Sparkles } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,10 +24,12 @@ export function UploadDialog({
   open,
   onOpenChange,
   onCreated,
+  initialFile = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  initialFile?: File | null;
 }) {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -31,6 +39,7 @@ export function UploadDialog({
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [error, setError] = useState("");
+  const handledFile = useRef<File | null>(null);
 
   useEffect(() => {
     if (open) return;
@@ -56,7 +65,8 @@ export function UploadDialog({
     try {
       if (file.size > 20 * 1024 * 1024) throw new Error("That file is larger than 20 MB.");
       const result = await parseFile(file);
-      if (!result.sections.length) throw new Error("We couldn't find readable sections in this file.");
+      if (!result.sections.length)
+        throw new Error("We couldn't find readable sections in this file.");
       setParsed(result);
       setTitle(result.title);
       setProgress(100);
@@ -68,6 +78,15 @@ export function UploadDialog({
       window.clearInterval(tick);
     }
   };
+
+  // A file dropped on the library hero opens this dialog already loaded.
+  useEffect(() => {
+    if (!open || !initialFile) return;
+    if (handledFile.current === initialFile) return;
+    handledFile.current = initialFile;
+    void handleFile(initialFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialFile]);
 
   const save = async () => {
     if (!parsed) return;
@@ -123,7 +142,9 @@ export function UploadDialog({
               <Loader2 className="size-5 animate-spin text-primary" />
               <div className="min-w-0">
                 <p className="truncate font-medium">{fileName}</p>
-                <p className="text-sm text-muted-foreground">Extracting text and finding headings…</p>
+                <p className="text-sm text-muted-foreground">
+                  Extracting text and finding headings…
+                </p>
               </div>
             </div>
             <Progress value={progress} className="h-2" />
@@ -180,7 +201,11 @@ export function UploadDialog({
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setPhase("idle")} disabled={phase === "saving"}>
+              <Button
+                variant="ghost"
+                onClick={() => setPhase("idle")}
+                disabled={phase === "saving"}
+              >
                 Choose another
               </Button>
               <Button onClick={save} disabled={phase === "saving"} className="rounded-full">

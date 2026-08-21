@@ -65,8 +65,8 @@ export async function saveProgress(input: {
     completed: input.completed ?? input.percent >= 99,
     updated_at: new Date().toISOString(),
   };
-  if (input.minutesRead !== undefined) payload['minutes_read'] = input.minutesRead;
-  if (input.lastSectionId !== undefined) payload['last_section_id'] = input.lastSectionId;
+  if (input.minutesRead !== undefined) payload["minutes_read"] = input.minutesRead;
+  if (input.lastSectionId !== undefined) payload["last_section_id"] = input.lastSectionId;
 
   const { error } = await supabase
     .from("reading_progress")
@@ -182,17 +182,15 @@ export async function replaceSections(documentId: string, sections: DraftSection
 
 export async function fetchSyncSource(): Promise<SyncSourceRow | null> {
   return unwrap<SyncSourceRow | null>(
-    await supabase
-      .from("sync_sources")
-      .select("*")
-      .eq("provider", "google_docs")
-      .maybeSingle(),
+    await supabase.from("sync_sources").select("*").eq("provider", "google_docs").maybeSingle(),
   );
 }
 
 export async function updateSyncSource(
   id: string,
-  patch: Partial<Pick<SyncSourceRow, "status" | "mode" | "account_label" | "auto_sync" | "last_sync_at">>,
+  patch: Partial<
+    Pick<SyncSourceRow, "status" | "mode" | "account_label" | "auto_sync" | "last_sync_at">
+  >,
 ): Promise<SyncSourceRow> {
   return unwrap<SyncSourceRow>(
     await supabase

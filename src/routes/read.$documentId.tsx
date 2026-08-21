@@ -14,11 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Confetti } from "@/components/Confetti";
@@ -37,14 +33,30 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/read/$documentId")({
-  head: () => ({
-    meta: [
-      { title: "Reading — PaperPlay" },
-      { name: "description", content: "A calm, focused reader for your documents." },
-      { property: "og:title", content: "Reading — PaperPlay" },
-      { property: "og:description", content: "A calm, focused reader for your documents." },
-    ],
-  }),
+  loader: async ({ params }) => {
+    try {
+      const doc = await fetchDocument(params.documentId);
+      return { title: doc?.title ?? null, excerpt: doc?.excerpt ?? null };
+    } catch {
+      return { title: null, excerpt: null };
+    }
+  },
+  head: ({ loaderData }) => {
+    const title = loaderData?.title ? `${loaderData.title} — PaperPlay` : "Reading — PaperPlay";
+    const description =
+      loaderData?.excerpt ?? "A calm, focused reader for the documents in your PaperPlay library.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "article" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
+
   component: ReaderPage,
   errorComponent: () => (
     <div className="grid min-h-screen place-items-center px-4 text-center">
@@ -103,7 +115,9 @@ function ReaderPage() {
 
   const doc = docQuery.data;
   const sections = useMemo(() => sectionsQuery.data ?? [], [sectionsQuery.data]);
-  const bookmarked = (annotationsQuery.data ?? []).find((a) => a.kind === "bookmark" && !a.section_id);
+  const bookmarked = (annotationsQuery.data ?? []).find(
+    (a) => a.kind === "bookmark" && !a.section_id,
+  );
 
   useEffect(() => {
     if (progressQuery.data) setPercent(progressQuery.data.percent);
@@ -135,7 +149,8 @@ function ReaderPage() {
         const next = new Set<string>();
         for (const s of sections) {
           const node = document.getElementById(`section-${s.id}`);
-          if (node && node.getBoundingClientRect().bottom < window.innerHeight * 0.6) next.add(s.id);
+          if (node && node.getBoundingClientRect().bottom < window.innerHeight * 0.6)
+            next.add(s.id);
         }
         setDoneSections(next);
       });
@@ -176,16 +191,49 @@ function ReaderPage() {
 
   // Keyboard shortcuts
   useEffect(() => {
+    const jump = (dir: 1 | -1) => {
+      const nodes = sections
+        .map((s) => document.getElementById(`section-${s.id}`))
+        .filter((n): n is HTMLElement => !!n);
+      if (!nodes.length) return;
+      const current = nodes.findIndex((n) => n.getBoundingClientRect().top > 80);
+      const index =
+        dir === 1
+          ? current === -1
+            ? nodes.length - 1
+            : current
+          : Math.max(0, (current === -1 ? nodes.length : current) - 2);
+      nodes[Math.min(nodes.length - 1, Math.max(0, index))]?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable
+      )
+        return;
       if (e.key === "f") update({ focusMode: !prefs.focusMode });
+      if (e.key === "Escape" && prefs.focusMode) update({ focusMode: false });
       if (e.key === "t") setTocOpen((o) => !o);
       if (e.key === "+" || e.key === "=") update({ fontSize: Math.min(26, prefs.fontSize + 1) });
       if (e.key === "-") update({ fontSize: Math.max(15, prefs.fontSize - 1) });
+      if (e.key === "j" || e.key === "J") {
+        e.preventDefault();
+        jump(1);
+      }
+      if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        jump(-1);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [prefs, update]);
+  }, [prefs, update, sections]);
 
   const toggleBookmark = async () => {
     if (bookmarked) {
@@ -248,7 +296,7 @@ function ReaderPage() {
 
       <header
         className={cn(
-          "sticky top-0 z-40 border-b border-current/10 backdrop-blur-md transition-opacity duration-300",
+          "reader-chrome sticky top-0 z-40 border-b border-current/10 backdrop-blur-md transition-opacity duration-300",
           prefs.focusMode && "opacity-0 hover:opacity-100 focus-within:opacity-100",
         )}
       >
@@ -374,6 +422,17 @@ function ReaderPage() {
                     ))}
                   </div>
                 </div>
+
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <dt>Next / previous section</dt>
+                  <dd className="text-right font-medium">J / K</dd>
+                  <dt>Focus mode</dt>
+                  <dd className="text-right font-medium">F</dd>
+                  <dt>Contents</dt>
+                  <dd className="text-right font-medium">T</dd>
+                  <dt>Text size</dt>
+                  <dd className="text-right font-medium">+ / −</dd>
+                </dl>
               </PopoverContent>
             </Popover>
 
@@ -451,7 +510,9 @@ function ReaderPage() {
         {percent >= 98 && (
           <div className="animate-pop rounded-3xl border border-current/10 p-8 text-center">
             <h2 className="font-display text-2xl font-semibold">You finished it 🎉</h2>
-            <p className="mt-2 opacity-70">Nice work. That's {doc.estimated_minutes} minutes well spent.</p>
+            <p className="mt-2 opacity-70">
+              Nice work. That's {doc.estimated_minutes} minutes well spent.
+            </p>
             <Link
               to="/"
               className="mt-5 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
