@@ -29,6 +29,7 @@ import {
   saveProgress,
 } from "@/lib/library";
 import { useReaderPrefs, useReadingStats, type ReaderTheme } from "@/hooks/useReaderPrefs";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -85,7 +86,13 @@ const THEMES: { id: ReaderTheme; label: string }[] = [
 function ReaderPage() {
   const { documentId } = Route.useParams();
   const queryClient = useQueryClient();
-  const { prefs, update } = useReaderPrefs();
+  const { prefs, update, themeExplicit } = useReaderPrefs();
+  const { resolved: appTheme } = useAppTheme();
+  const readerTheme: ReaderTheme = themeExplicit
+    ? prefs.theme
+    : appTheme === "dark"
+      ? "dark"
+      : prefs.theme;
   const [percent, setPercent] = useState(0);
   const [celebrate, setCelebrate] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -281,7 +288,7 @@ function ReaderPage() {
   const headings = sections.filter((s) => s.heading);
 
   return (
-    <div className={cn("reader-surface min-h-screen", `reader-${prefs.theme}`)}>
+    <div className={cn("reader-surface min-h-screen", `reader-${readerTheme}`)}>
       <Confetti fire={celebrate} onDone={() => setCelebrate(false)} />
 
       <div
@@ -303,7 +310,6 @@ function ReaderPage() {
           <ArrowLeft className="size-4" />
         </Link>
       )}
-
 
       <header
         className={cn(
@@ -424,10 +430,10 @@ function ReaderPage() {
                       <button
                         key={t.id}
                         onClick={() => update({ theme: t.id })}
-                        aria-pressed={prefs.theme === t.id}
+                        aria-pressed={readerTheme === t.id}
                         className={cn(
                           "rounded-xl border px-2 py-2 text-sm transition",
-                          prefs.theme === t.id
+                          readerTheme === t.id
                             ? "border-primary bg-secondary font-medium"
                             : "border-border hover:bg-secondary/60",
                         )}
