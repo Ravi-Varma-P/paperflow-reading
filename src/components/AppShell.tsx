@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { BookOpenText, Settings } from "lucide-react";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Settings className="size-4" />
               <span className="hidden sm:inline">Settings</span>
             </Link>
+            <ThemeToggle className="ml-0.5" />
           </nav>
         </div>
       </header>
