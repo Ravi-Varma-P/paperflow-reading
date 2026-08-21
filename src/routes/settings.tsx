@@ -83,8 +83,13 @@ const APP_THEMES: { id: ThemeChoice; label: string; icon: typeof Sun }[] = [
 ];
 
 function SettingsPage() {
-  const { prefs, update } = useReaderPrefs();
-  const { theme, setTheme } = useAppTheme();
+  const { prefs, update, themeExplicit } = useReaderPrefs();
+  const { theme, setTheme, resolved: appTheme } = useAppTheme();
+  const readerTheme: ReaderTheme = themeExplicit
+    ? prefs.theme
+    : appTheme === "dark"
+      ? "dark"
+      : prefs.theme;
   const queryClient = useQueryClient();
   const connector = getGoogleDocsConnector();
   const [syncOpen, setSyncOpen] = useState(false);
@@ -176,10 +181,10 @@ function SettingsPage() {
                   <button
                     key={t}
                     onClick={() => update({ theme: t })}
-                    aria-pressed={prefs.theme === t}
+                    aria-pressed={readerTheme === t}
                     className={cn(
                       "rounded-xl border px-3 py-2.5 text-sm capitalize transition",
-                      prefs.theme === t
+                      readerTheme === t
                         ? "border-primary bg-secondary font-medium"
                         : "border-border hover:bg-secondary/60",
                     )}
