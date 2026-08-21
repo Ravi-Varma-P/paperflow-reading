@@ -96,7 +96,11 @@ export function recordMinute(): ReadingStats {
 }
 
 export function useReadingStats(active: boolean) {
-  const [stats, setStats] = useState<ReadingStats>({ minutesToday: 0, streak: 0, lastDay: today() });
+  const [stats, setStats] = useState<ReadingStats>({
+    minutesToday: 0,
+    streak: 0,
+    lastDay: today(),
+  });
 
   useEffect(() => {
     setStats(loadStats());

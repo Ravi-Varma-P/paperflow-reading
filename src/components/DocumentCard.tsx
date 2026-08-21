@@ -32,7 +32,10 @@ export function DocumentCard({
   return (
     <article className="card-lift group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-soft)]">
       <div
-        className={cn("h-1.5 w-full bg-linear-to-r", ACCENT_BAR[doc.accent] ?? ACCENT_BAR['lavender'])}
+        className={cn(
+          "h-1.5 w-full bg-linear-to-r",
+          ACCENT_BAR[doc.accent] ?? ACCENT_BAR["lavender"],
+        )}
       />
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">

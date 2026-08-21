@@ -41,6 +41,8 @@ type Filter = "all" | "upload" | "google_docs" | "reading";
 function LibraryPage() {
   const queryClient = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
   const [syncOpen, setSyncOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -100,11 +102,18 @@ function LibraryPage() {
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
               Drop in a PDF, Word file, note or Markdown draft — or connect Google Docs — and
-              PaperPlay reshapes the text into clean sections with progress, highlights and a
-              reader built for actually finishing things.
+              PaperPlay reshapes the text into clean sections with progress, highlights and a reader
+              built for actually finishing things.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" className="rounded-full" onClick={() => setUploadOpen(true)}>
+              <Button
+                size="lg"
+                className="rounded-full"
+                onClick={() => {
+                  setPendingFile(null);
+                  setUploadOpen(true);
+                }}
+              >
                 <Plus className="size-4" /> Upload document
               </Button>
               <Button
@@ -150,7 +159,12 @@ function LibraryPage() {
             </dl>
           </div>
 
-          <DropZone onFile={() => setUploadOpen(true)} />
+          <DropZone
+            onFile={(file) => {
+              setPendingFile(file);
+              setUploadOpen(true);
+            }}
+          />
         </div>
       </section>
 
@@ -223,7 +237,13 @@ function LibraryPage() {
                   : "Add your first document and PaperPlay will turn it into a calm, sectioned read."}
               </p>
               {!docs.length && (
-                <Button className="mt-6 rounded-full" onClick={() => setUploadOpen(true)}>
+                <Button
+                  className="mt-6 rounded-full"
+                  onClick={() => {
+                    setPendingFile(null);
+                    setUploadOpen(true);
+                  }}
+                >
                   <Plus className="size-4" /> Upload your first document
                 </Button>
               )}
@@ -234,7 +254,11 @@ function LibraryPage() {
 
       <UploadDialog
         open={uploadOpen}
-        onOpenChange={setUploadOpen}
+        initialFile={pendingFile}
+        onOpenChange={(next) => {
+          setUploadOpen(next);
+          if (!next) setPendingFile(null);
+        }}
         onCreated={() => void queryClient.invalidateQueries({ queryKey: ["documents"] })}
       />
       <GoogleSyncDialog open={syncOpen} onOpenChange={setSyncOpen} />
