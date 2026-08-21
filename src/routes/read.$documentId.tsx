@@ -303,9 +303,13 @@ function ReaderPage() {
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-medium opacity-80 transition hover:opacity-100"
+            aria-label="Back to library"
+            title="Back to library"
+            className="inline-flex items-center gap-2 rounded-full border border-current/15 bg-current/5 px-3 py-2 text-sm font-medium transition hover:bg-current/10 focus-visible:ring-2 focus-visible:ring-current/30"
           >
-            <ArrowLeft className="size-4" /> <span className="hidden sm:inline">Library</span>
+            <ArrowLeft className="size-4 shrink-0" />
+            <span className="hidden sm:inline">Back to library</span>
+            <span className="sr-only sm:hidden">Back to library</span>
           </Link>
 
           <div className="flex items-center gap-1.5">
