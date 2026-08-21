@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CloudCog, Flame, Plus, Search, Sparkles, Timer } from "lucide-react";
@@ -38,6 +38,8 @@ export const Route = createFileRoute("/")({
 
 type Filter = "all" | "upload" | "google_docs" | "reading";
 
+const LIBRARY_STATE_KEY = "paperplay.library.state";
+
 function LibraryPage() {
   const queryClient = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -47,6 +49,27 @@ function LibraryPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const stats = useReadingStats(false);
+
+  // Restore the search/filter the reader was opened from.
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(LIBRARY_STATE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { query?: string; filter?: Filter };
+      if (saved.query) setQuery(saved.query);
+      if (saved.filter) setFilter(saved.filter);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(LIBRARY_STATE_KEY, JSON.stringify({ query, filter }));
+    } catch {
+      /* ignore */
+    }
+  }, [query, filter]);
 
   const docsQuery = useQuery({ queryKey: ["documents"], queryFn: fetchDocuments });
   const progressQuery = useQuery({ queryKey: ["progress"], queryFn: fetchAllProgress });
