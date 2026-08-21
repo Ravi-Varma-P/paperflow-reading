@@ -150,10 +150,7 @@ function LibraryPage() {
             </dl>
           </div>
 
-          <DropZone
-            onFile={() => setUploadOpen(true)}
-            aria-hidden
-          />
+          <DropZone onFile={() => setUploadOpen(true)} />
         </div>
       </section>
 
