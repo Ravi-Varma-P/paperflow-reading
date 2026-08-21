@@ -54,7 +54,6 @@
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-reading: "Newsreader", ui-serif, Georgia, serif;
-  --font-reading: "Newsreader", ui-serif, Georgia, serif;
 
   --shadow-soft: 0 1px 2px oklch(0.3 0.03 70 / 0.04), 0 8px 24px oklch(0.3 0.03 70 / 0.06);
   --shadow-lift: 0 2px 4px oklch(0.3 0.03 70 / 0.05), 0 18px 40px oklch(0.3 0.03 70 / 0.1);
