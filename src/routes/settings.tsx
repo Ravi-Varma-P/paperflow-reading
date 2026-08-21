@@ -1,7 +1,19 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleUser, CloudCog, FlaskConical, HardDrive, Palette, Radio } from "lucide-react";
+import {
+  CircleUser,
+  CloudCog,
+  FlaskConical,
+  HardDrive,
+  Monitor,
+  Moon,
+  Palette,
+  Radio,
+  Sun,
+  SunMoon,
+} from "lucide-react";
+import { useAppTheme, type ThemeChoice } from "@/hooks/useAppTheme";
 import { AppShell } from "@/components/AppShell";
 import { GoogleSyncDialog } from "@/components/GoogleSyncDialog";
 import { Button } from "@/components/ui/button";
@@ -64,8 +76,20 @@ function Section({
 
 const THEMES: ReaderTheme[] = ["light", "sepia", "dark"];
 
+const APP_THEMES: { id: ThemeChoice; label: string; icon: typeof Sun }[] = [
+  { id: "light", label: "Light", icon: Sun },
+  { id: "dark", label: "Dark", icon: Moon },
+  { id: "system", label: "System", icon: Monitor },
+];
+
 function SettingsPage() {
-  const { prefs, update } = useReaderPrefs();
+  const { prefs, update, themeExplicit } = useReaderPrefs();
+  const { theme, setTheme, resolved: appTheme } = useAppTheme();
+  const readerTheme: ReaderTheme = themeExplicit
+    ? prefs.theme
+    : appTheme === "dark"
+      ? "dark"
+      : prefs.theme;
   const queryClient = useQueryClient();
   const connector = getGoogleDocsConnector();
   const [syncOpen, setSyncOpen] = useState(false);
@@ -89,6 +113,30 @@ function SettingsPage() {
             Reading defaults, sync behaviour and what's stored in your library.
           </p>
         </header>
+
+        <Section
+          icon={<SunMoon className="size-5 text-ocean" />}
+          title="Appearance"
+          description="Choose how PaperPlay looks across the whole app. Reader themes below apply to the reading page only."
+        >
+          <div className="grid grid-cols-3 gap-2">
+            {APP_THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTheme(t.id)}
+                aria-pressed={theme === t.id}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 rounded-2xl border border-border px-3 py-3 text-sm font-medium transition hover:bg-secondary",
+                  theme === t.id && "border-primary bg-secondary text-foreground",
+                )}
+              >
+                <t.icon className="size-4" />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </Section>
 
         <Section
           icon={<Palette className="size-5 text-lavender" />}
@@ -133,10 +181,10 @@ function SettingsPage() {
                   <button
                     key={t}
                     onClick={() => update({ theme: t })}
-                    aria-pressed={prefs.theme === t}
+                    aria-pressed={readerTheme === t}
                     className={cn(
                       "rounded-xl border px-3 py-2.5 text-sm capitalize transition",
-                      prefs.theme === t
+                      readerTheme === t
                         ? "border-primary bg-secondary font-medium"
                         : "border-border hover:bg-secondary/60",
                     )}

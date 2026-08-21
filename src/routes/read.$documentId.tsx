@@ -29,6 +29,7 @@ import {
   saveProgress,
 } from "@/lib/library";
 import { useReaderPrefs, useReadingStats, type ReaderTheme } from "@/hooks/useReaderPrefs";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -85,7 +86,13 @@ const THEMES: { id: ReaderTheme; label: string }[] = [
 function ReaderPage() {
   const { documentId } = Route.useParams();
   const queryClient = useQueryClient();
-  const { prefs, update } = useReaderPrefs();
+  const { prefs, update, themeExplicit } = useReaderPrefs();
+  const { resolved: appTheme } = useAppTheme();
+  const readerTheme: ReaderTheme = themeExplicit
+    ? prefs.theme
+    : appTheme === "dark"
+      ? "dark"
+      : prefs.theme;
   const [percent, setPercent] = useState(0);
   const [celebrate, setCelebrate] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -281,7 +288,7 @@ function ReaderPage() {
   const headings = sections.filter((s) => s.heading);
 
   return (
-    <div className={cn("reader-surface min-h-screen", `reader-${prefs.theme}`)}>
+    <div className={cn("reader-surface min-h-screen", `reader-${readerTheme}`)}>
       <Confetti fire={celebrate} onDone={() => setCelebrate(false)} />
 
       <div
@@ -294,6 +301,16 @@ function ReaderPage() {
         aria-label="Reading progress"
       />
 
+      {prefs.focusMode && (
+        <Link
+          to="/"
+          aria-label="Back to library"
+          className="reader-chrome fixed top-3 left-3 z-50 inline-flex size-10 items-center justify-center rounded-full border border-current/15 shadow-[var(--shadow-soft)] backdrop-blur-md transition hover:opacity-100 sm:top-4 sm:left-4"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+      )}
+
       <header
         className={cn(
           "reader-chrome sticky top-0 z-40 border-b border-current/10 backdrop-blur-md transition-opacity duration-300",
@@ -303,9 +320,13 @@ function ReaderPage() {
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-medium opacity-80 transition hover:opacity-100"
+            aria-label="Back to library"
+            title="Back to library"
+            className="inline-flex items-center gap-2 rounded-full border border-current/15 bg-current/5 px-3 py-2 text-sm font-medium transition hover:bg-current/10 focus-visible:ring-2 focus-visible:ring-current/30"
           >
-            <ArrowLeft className="size-4" /> <span className="hidden sm:inline">Library</span>
+            <ArrowLeft className="size-4 shrink-0" />
+            <span className="hidden sm:inline">Back to library</span>
+            <span className="sr-only sm:hidden">Back to library</span>
           </Link>
 
           <div className="flex items-center gap-1.5">
@@ -409,10 +430,10 @@ function ReaderPage() {
                       <button
                         key={t.id}
                         onClick={() => update({ theme: t.id })}
-                        aria-pressed={prefs.theme === t.id}
+                        aria-pressed={readerTheme === t.id}
                         className={cn(
                           "rounded-xl border px-2 py-2 text-sm transition",
-                          prefs.theme === t.id
+                          readerTheme === t.id
                             ? "border-primary bg-secondary font-medium"
                             : "border-border hover:bg-secondary/60",
                         )}
