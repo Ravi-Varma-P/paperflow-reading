@@ -294,6 +294,17 @@ function ReaderPage() {
         aria-label="Reading progress"
       />
 
+      {prefs.focusMode && (
+        <Link
+          to="/"
+          aria-label="Back to library"
+          className="reader-chrome fixed top-3 left-3 z-50 inline-flex size-10 items-center justify-center rounded-full border border-current/15 shadow-[var(--shadow-soft)] backdrop-blur-md transition hover:opacity-100 sm:top-4 sm:left-4"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+      )}
+
+
       <header
         className={cn(
           "reader-chrome sticky top-0 z-40 border-b border-current/10 backdrop-blur-md transition-opacity duration-300",
