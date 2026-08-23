@@ -307,15 +307,6 @@ function ReaderPage() {
     <div className={cn("reader-surface min-h-screen", `reader-${readerTheme}`)}>
       <Confetti fire={celebrate} onDone={() => setCelebrate(false)} />
 
-      <div
-        className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-linear-to-r from-lavender to-coral transition-transform duration-150"
-        style={{ transform: `scaleX(${percent / 100})` }}
-        role="progressbar"
-        aria-valuenow={Math.round(percent)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Reading progress"
-      />
 
       {prefs.focusMode && (
         <Link
