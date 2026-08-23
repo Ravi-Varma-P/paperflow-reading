@@ -485,7 +485,11 @@ function ReaderPage() {
               <Bookmark className={cn("size-4", bookmarked && "fill-coral text-coral")} />
             </Button>
 
-            <ProgressRing value={percent} size={34} />
+            <ReaderProgress
+              targetRef={articleRef}
+              initialPercent={startPercent}
+              onProgress={handleProgress}
+            />
           </div>
         </div>
       </header>
