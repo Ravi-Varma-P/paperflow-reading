@@ -288,10 +288,17 @@
 }
 
 @utility section-complete {
-  & > h2::after,
-  & > h3::after {
-    content: "";
-  }
   border-left: 2px solid transparent;
-  animation: pp-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Native smooth scrolling for anchors / programmatic jumps only.
+   Wheel, trackpad and touch scrolling stay fully native. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
