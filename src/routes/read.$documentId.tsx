@@ -539,7 +539,7 @@ function ReaderPage() {
           ))}
         </div>
 
-        {percent >= 98 && (
+        {finished && (
           <div className="animate-pop rounded-3xl border border-current/10 p-8 text-center">
             <h2 className="font-display text-2xl font-semibold">You finished it 🎉</h2>
             <p className="mt-2 opacity-70">
