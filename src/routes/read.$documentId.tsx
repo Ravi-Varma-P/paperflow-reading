@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { ProgressRing } from "@/components/ProgressRing";
+import { ReaderProgress } from "@/components/ReaderProgress";
 import { Confetti } from "@/components/Confetti";
 import { SourceBadge, relativeTime } from "@/components/SourceBadge";
 import {
