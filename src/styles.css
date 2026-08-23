@@ -181,10 +181,7 @@
 }
 
 @utility paper-grain {
-  background-image: radial-gradient(
-      oklch(0.6 0.05 60 / 0.05) 1px,
-      transparent 1px
-    );
+  background-image: radial-gradient(oklch(0.6 0.05 60 / 0.05) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -273,7 +270,6 @@
   background-color: color-mix(in oklab, var(--reader-bg) 92%, transparent);
   color: var(--reader-fg);
 }
-
 
 @utility reader-prose {
   font-family: var(--font-reading, ui-serif, Georgia, serif);

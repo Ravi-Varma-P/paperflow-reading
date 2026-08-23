@@ -226,8 +226,9 @@ function ReaderPage() {
             ? nodes.length - 1
             : current
           : Math.max(0, (current === -1 ? nodes.length : current) - 2);
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       nodes[Math.min(nodes.length - 1, Math.max(0, index))]?.scrollIntoView({
-        behavior: "smooth",
+        behavior: reduced ? "auto" : "smooth",
         block: "start",
       });
     };
@@ -306,7 +307,6 @@ function ReaderPage() {
   return (
     <div className={cn("reader-surface min-h-screen", `reader-${readerTheme}`)}>
       <Confetti fire={celebrate} onDone={() => setCelebrate(false)} />
-
 
       {prefs.focusMode && (
         <Link
@@ -517,10 +517,7 @@ function ReaderPage() {
             <section
               key={s.id}
               id={`section-${s.id}`}
-              className={cn(
-                "mb-10 scroll-mt-24 transition-opacity duration-500",
-                doneSections.has(s.id) && "section-complete",
-              )}
+              className={cn("mb-10 scroll-mt-24", doneSections.has(s.id) && "section-complete")}
             >
               {s.heading &&
                 (s.heading_level <= 2 ? (
