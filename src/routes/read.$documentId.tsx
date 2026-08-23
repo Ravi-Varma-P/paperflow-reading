@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { ProgressRing } from "@/components/ProgressRing";
+import { ReaderProgress } from "@/components/ReaderProgress";
 import { Confetti } from "@/components/Confetti";
 import { SourceBadge, relativeTime } from "@/components/SourceBadge";
 import {
@@ -93,12 +93,14 @@ function ReaderPage() {
     : appTheme === "dark"
       ? "dark"
       : prefs.theme;
-  const [percent, setPercent] = useState(0);
+  const [startPercent, setStartPercent] = useState(0);
+  const [finished, setFinished] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [selection, setSelection] = useState<{ text: string; x: number; y: number } | null>(null);
   const [doneSections, setDoneSections] = useState<Set<string>>(new Set());
   const celebrated = useRef(false);
+  const percentRef = useRef(0);
   const articleRef = useRef<HTMLElement>(null);
 
   const docQuery = useQuery({
@@ -127,57 +129,71 @@ function ReaderPage() {
   );
 
   useEffect(() => {
-    if (progressQuery.data) setPercent(progressQuery.data.percent);
+    if (progressQuery.data) setStartPercent(progressQuery.data.percent);
   }, [progressQuery.data]);
 
-  const persist = useCallback(
+  // Progress updates arrive from a passive rAF listener; keep them in a ref so
+  // scrolling never re-renders the article.
+  const handleProgress = useCallback(
     (value: number) => {
-      void saveProgress({ documentId, percent: value }).then(() => {
-        void queryClient.invalidateQueries({ queryKey: ["progress"] });
-      });
+      percentRef.current = value;
+      if (value >= 98 && !celebrated.current) {
+        celebrated.current = true;
+        setFinished(true);
+        setCelebrate(true);
+        void saveProgress({ documentId, percent: 100, completed: true }).then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["progress"] });
+        });
+      }
     },
     [documentId, queryClient],
   );
 
-  // Scroll-driven progress + section completion
+  // Persist progress on an interval and when leaving the reader.
   useEffect(() => {
     if (!sections.length) return;
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const el = articleRef.current;
-        if (!el) return;
-        const total = el.scrollHeight - window.innerHeight + el.offsetTop;
-        const value = Math.max(0, Math.min(100, ((window.scrollY - 0) / Math.max(1, total)) * 100));
-        setPercent((prev) => (Math.abs(prev - value) > 0.6 ? value : prev));
-
-        const next = new Set<string>();
-        for (const s of sections) {
-          const node = document.getElementById(`section-${s.id}`);
-          if (node && node.getBoundingClientRect().bottom < window.innerHeight * 0.6)
-            next.add(s.id);
-        }
-        setDoneSections(next);
+    const flush = () => {
+      const value = percentRef.current;
+      if (value <= 0) return;
+      void saveProgress({ documentId, percent: value }).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["progress"] });
       });
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [sections]);
+    const id = window.setInterval(flush, 8000);
+    return () => {
+      window.clearInterval(id);
+      flush();
+    };
+  }, [documentId, sections.length, queryClient]);
 
-  // Persist progress occasionally + celebrate at the end
+  // Section completion via IntersectionObserver — no work on the scroll thread.
   useEffect(() => {
     if (!sections.length) return;
-    const id = window.setTimeout(() => persist(percent), 1200);
-    if (percent >= 98 && !celebrated.current) {
-      celebrated.current = true;
-      setCelebrate(true);
-      void saveProgress({ documentId, percent: 100, completed: true });
+    const done = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let changed = false;
+        for (const entry of entries) {
+          const id = entry.target.id.replace("section-", "");
+          const isDone = entry.boundingClientRect.bottom < window.innerHeight * 0.6;
+          if (isDone && !done.has(id)) {
+            done.add(id);
+            changed = true;
+          } else if (!isDone && done.has(id)) {
+            done.delete(id);
+            changed = true;
+          }
+        }
+        if (changed) setDoneSections(new Set(done));
+      },
+      { rootMargin: "0px 0px -40% 0px", threshold: [0, 1] },
+    );
+    for (const s of sections) {
+      const node = document.getElementById(`section-${s.id}`);
+      if (node) observer.observe(node);
     }
-    return () => window.clearTimeout(id);
-  }, [percent, sections.length, persist, documentId]);
+    return () => observer.disconnect();
+  }, [sections]);
 
   // Selection toolbar
   useEffect(() => {
@@ -210,8 +226,9 @@ function ReaderPage() {
             ? nodes.length - 1
             : current
           : Math.max(0, (current === -1 ? nodes.length : current) - 2);
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       nodes[Math.min(nodes.length - 1, Math.max(0, index))]?.scrollIntoView({
-        behavior: "smooth",
+        behavior: reduced ? "auto" : "smooth",
         block: "start",
       });
     };
@@ -290,16 +307,6 @@ function ReaderPage() {
   return (
     <div className={cn("reader-surface min-h-screen", `reader-${readerTheme}`)}>
       <Confetti fire={celebrate} onDone={() => setCelebrate(false)} />
-
-      <div
-        className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-linear-to-r from-lavender to-coral transition-transform duration-150"
-        style={{ transform: `scaleX(${percent / 100})` }}
-        role="progressbar"
-        aria-valuenow={Math.round(percent)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Reading progress"
-      />
 
       {prefs.focusMode && (
         <Link
@@ -478,7 +485,11 @@ function ReaderPage() {
               <Bookmark className={cn("size-4", bookmarked && "fill-coral text-coral")} />
             </Button>
 
-            <ProgressRing value={percent} size={34} />
+            <ReaderProgress
+              targetRef={articleRef}
+              initialPercent={startPercent}
+              onProgress={handleProgress}
+            />
           </div>
         </div>
       </header>
@@ -506,10 +517,7 @@ function ReaderPage() {
             <section
               key={s.id}
               id={`section-${s.id}`}
-              className={cn(
-                "mb-10 scroll-mt-24 transition-opacity duration-500",
-                doneSections.has(s.id) && "section-complete",
-              )}
+              className={cn("mb-10 scroll-mt-24", doneSections.has(s.id) && "section-complete")}
             >
               {s.heading &&
                 (s.heading_level <= 2 ? (
@@ -528,7 +536,7 @@ function ReaderPage() {
           ))}
         </div>
 
-        {percent >= 98 && (
+        {finished && (
           <div className="animate-pop rounded-3xl border border-current/10 p-8 text-center">
             <h2 className="font-display text-2xl font-semibold">You finished it 🎉</h2>
             <p className="mt-2 opacity-70">

@@ -181,10 +181,7 @@
 }
 
 @utility paper-grain {
-  background-image: radial-gradient(
-      oklch(0.6 0.05 60 / 0.05) 1px,
-      transparent 1px
-    );
+  background-image: radial-gradient(oklch(0.6 0.05 60 / 0.05) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -274,7 +271,6 @@
   color: var(--reader-fg);
 }
 
-
 @utility reader-prose {
   font-family: var(--font-reading, ui-serif, Georgia, serif);
   & p {
@@ -288,10 +284,17 @@
 }
 
 @utility section-complete {
-  & > h2::after,
-  & > h3::after {
-    content: "";
-  }
   border-left: 2px solid transparent;
-  animation: pp-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Native smooth scrolling for anchors / programmatic jumps only.
+   Wheel, trackpad and touch scrolling stay fully native. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
