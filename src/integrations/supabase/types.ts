@@ -24,6 +24,7 @@ export type Database = {
           note: string | null
           quote: string | null
           section_id: string | null
+          user_id: string | null
         }
         Insert: {
           color?: string
@@ -34,6 +35,7 @@ export type Database = {
           note?: string | null
           quote?: string | null
           section_id?: string | null
+          user_id?: string | null
         }
         Update: {
           color?: string
@@ -44,6 +46,7 @@ export type Database = {
           note?: string | null
           quote?: string | null
           section_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -109,6 +112,7 @@ export type Database = {
           sync_status: string
           title: string
           updated_at: string
+          user_id: string | null
           word_count: number
         }
         Insert: {
@@ -126,6 +130,7 @@ export type Database = {
           sync_status?: string
           title: string
           updated_at?: string
+          user_id?: string | null
           word_count?: number
         }
         Update: {
@@ -143,6 +148,7 @@ export type Database = {
           sync_status?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
           word_count?: number
         }
         Relationships: []
@@ -156,6 +162,7 @@ export type Database = {
           minutes_read: number
           percent: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           completed?: boolean
@@ -165,6 +172,7 @@ export type Database = {
           minutes_read?: number
           percent?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           completed?: boolean
@@ -174,12 +182,13 @@ export type Database = {
           minutes_read?: number
           percent?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "reading_progress_document_id_fkey"
             columns: ["document_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "documents"
             referencedColumns: ["id"]
           },
@@ -194,6 +203,7 @@ export type Database = {
           source_id: string | null
           started_at: string
           status: string
+          user_id: string | null
         }
         Insert: {
           documents_synced?: number
@@ -203,6 +213,7 @@ export type Database = {
           source_id?: string | null
           started_at?: string
           status?: string
+          user_id?: string | null
         }
         Update: {
           documents_synced?: number
@@ -212,6 +223,7 @@ export type Database = {
           source_id?: string | null
           started_at?: string
           status?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -235,6 +247,7 @@ export type Database = {
           provider: string
           status: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           account_label?: string | null
@@ -247,6 +260,7 @@ export type Database = {
           provider?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           account_label?: string | null
@@ -259,6 +273,7 @@ export type Database = {
           provider?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

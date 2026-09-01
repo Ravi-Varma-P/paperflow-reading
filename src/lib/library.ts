@@ -52,6 +52,11 @@ export async function fetchProgress(documentId: string): Promise<ProgressRow | n
   );
 }
 
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export async function saveProgress(input: {
   documentId: string;
   percent: number;
@@ -59,7 +64,12 @@ export async function saveProgress(input: {
   lastSectionId?: string | null;
   completed?: boolean;
 }): Promise<void> {
+  const userId = await currentUserId();
+  // Reading progress is private per account; anonymous visitors simply don't persist it.
+  if (!userId) return;
+
   const payload: Record<string, unknown> = {
+    user_id: userId,
     document_id: input.documentId,
     percent: Math.round(input.percent),
     completed: input.completed ?? input.percent >= 99,
@@ -70,7 +80,7 @@ export async function saveProgress(input: {
 
   const { error } = await supabase
     .from("reading_progress")
-    .upsert(payload as never, { onConflict: "document_id" });
+    .upsert(payload as never, { onConflict: "user_id,document_id" });
   if (error) throw new Error(error.message);
 }
 
@@ -91,10 +101,14 @@ export async function addAnnotation(input: {
   quote?: string | null;
   color?: Accent;
 }): Promise<AnnotationRow> {
+  const userId = await currentUserId();
+  if (!userId) throw new Error("Sign in to save highlights and bookmarks.");
+
   return unwrap<AnnotationRow>(
     await supabase
       .from("annotations")
       .insert({
+        user_id: userId,
         document_id: input.documentId,
         section_id: input.sectionId ?? null,
         kind: input.kind,
@@ -129,11 +143,16 @@ export interface CreateDocumentInput {
 }
 
 export async function createDocument(input: CreateDocumentInput): Promise<DocumentRow> {
+  const userId = await currentUserId();
+  if (!userId) throw new Error("Sign in to add documents to your library.");
+
   const doc = unwrap<DocumentRow>(
     await supabase
       .from("documents")
       .insert({
+        user_id: userId,
         title: input.title,
+
         author: input.author ?? null,
         source: input.source,
         file_type: input.fileType,
@@ -181,8 +200,26 @@ export async function replaceSections(documentId: string, sections: DraftSection
 }
 
 export async function fetchSyncSource(): Promise<SyncSourceRow | null> {
-  return unwrap<SyncSourceRow | null>(
-    await supabase.from("sync_sources").select("*").eq("provider", "google_docs").maybeSingle(),
+  const userId = await currentUserId();
+  // Sync configuration is per account.
+  if (!userId) return null;
+
+  const existing = unwrap<SyncSourceRow | null>(
+    await supabase
+      .from("sync_sources")
+      .select("*")
+      .eq("provider", "google_docs")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  );
+  if (existing) return existing;
+
+  return unwrap<SyncSourceRow>(
+    await supabase
+      .from("sync_sources")
+      .insert({ provider: "google_docs", display_name: "Google Docs", user_id: userId } as never)
+      .select()
+      .single(),
   );
 }
 
@@ -218,7 +255,11 @@ export async function logSyncJob(input: {
   documentsSynced: number;
   message: string;
 }): Promise<void> {
+  const userId = await currentUserId();
+  if (!userId) return;
+
   const { error } = await supabase.from("sync_jobs").insert({
+    user_id: userId,
     source_id: input.sourceId,
     status: input.status,
     documents_synced: input.documentsSynced,

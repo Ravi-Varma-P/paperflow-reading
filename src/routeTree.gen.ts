@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReadDocumentIdRouteImport } from './routes/read.$documentId'
@@ -18,6 +19,11 @@ import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -43,6 +49,7 @@ const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
@@ -66,12 +75,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/mcp' | '/settings' | '/read/$documentId' | '/api/public/mcp'
+    | '/'
+    | '/auth'
+    | '/mcp'
+    | '/settings'
+    | '/read/$documentId'
+    | '/api/public/mcp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/mcp' | '/settings' | '/read/$documentId' | '/api/public/mcp'
+  to:
+    | '/'
+    | '/auth'
+    | '/mcp'
+    | '/settings'
+    | '/read/$documentId'
+    | '/api/public/mcp'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/mcp'
     | '/settings'
     | '/read/$documentId'
@@ -80,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   McpRoute: typeof McpRoute
   SettingsRoute: typeof SettingsRoute
   ReadDocumentIdRoute: typeof ReadDocumentIdRoute
@@ -93,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -128,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   McpRoute: McpRoute,
   SettingsRoute: SettingsRoute,
   ReadDocumentIdRoute: ReadDocumentIdRoute,
