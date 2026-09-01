@@ -91,7 +91,6 @@ Each tool returns both human-readable text and `structuredContent` JSON.
 5. Approve the consent screen when the browser opens, then confirm the four
    tools appear after Grok's `tools/list` handshake.
 
-
 ### Verifying manually
 
 ```sh
