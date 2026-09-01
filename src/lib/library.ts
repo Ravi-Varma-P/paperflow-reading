@@ -102,10 +102,14 @@ export async function addAnnotation(input: {
   quote?: string | null;
   color?: Accent;
 }): Promise<AnnotationRow> {
+  const userId = await currentUserId();
+  if (!userId) throw new Error("Sign in to save highlights and bookmarks.");
+
   return unwrap<AnnotationRow>(
     await supabase
       .from("annotations")
       .insert({
+        user_id: userId,
         document_id: input.documentId,
         section_id: input.sectionId ?? null,
         kind: input.kind,
@@ -116,6 +120,7 @@ export async function addAnnotation(input: {
       .single(),
   );
 }
+
 
 export async function removeAnnotation(id: string): Promise<void> {
   const { error } = await supabase.from("annotations").delete().eq("id", id);
