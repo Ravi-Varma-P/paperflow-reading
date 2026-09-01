@@ -54,16 +54,20 @@ The endpoint is only reachable over HTTPS once the project is **published**.
 
 ### Authentication
 
-Every request must send a bearer API key:
+The endpoint accepts **two** bearer credentials:
 
-```
-Authorization: Bearer <MCP_API_KEY>
-```
+1. **OAuth 2.1 (recommended for AI clients).** The app is an OAuth resource
+   server. Clients discover the authorization server through
+   `/.well-known/oauth-protected-resource`, register dynamically, send the user
+   through the app's consent screen at `/.lovable/oauth/consent`, and receive a
+   user access token. Tools then run as that signed-in PaperPlay user, so
+   database row-level security applies to them.
+2. **Static API key.** `Authorization: Bearer <MCP_API_KEY>` — a server-side
+   environment secret, useful for scripts and curl. It has anonymous-level
+   database access (public sample documents only).
 
-`MCP_API_KEY` is a server-side environment secret (Project Settings → Secrets).
-There is **no anonymous access**: unauthenticated requests get `401`, and if the
-secret is missing the server returns `503` instead of serving data. Rotate the
-key by changing the secret value; clients must be updated with the new key.
+There is **no anonymous access**: unauthenticated requests get `401` with a
+`WWW-Authenticate` header pointing at the protected-resource metadata.
 
 ### Tools (all read-only)
 
@@ -81,8 +85,11 @@ Each tool returns both human-readable text and `structuredContent` JSON.
 1. Publish the app so the HTTPS URL is live.
 2. In Grok → Settings → **Connectors** → **Add custom connector**.
 3. **Server URL**: `https://<your-app>.lovable.app/mcp`
-4. **Authentication**: API key / bearer token → paste the `MCP_API_KEY` value.
-5. Save, then confirm the four tools appear after Grok's `tools/list` handshake.
+4. Leave the OAuth client id/secret fields blank if Grok supports dynamic
+   client registration; otherwise create a client in the app's auth settings.
+   Grok reads the OAuth endpoints from the discovery document automatically.
+5. Approve the consent screen when the browser opens, then confirm the four
+   tools appear after Grok's `tools/list` handshake.
 
 ### Verifying manually
 

@@ -66,8 +66,7 @@ function supabaseForMcp(accessToken?: string) {
 /* ----------------------------------------------------------------- auth */
 
 export type AuthResult =
-  | { ok: true; accessToken?: string }
-  | { ok: false; status: number; message: string };
+  { ok: true; accessToken?: string } | { ok: false; status: number; message: string };
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -110,7 +109,6 @@ export async function authenticate(request: Request): Promise<AuthResult> {
   if (expected && timingSafeEqual(presented, expected)) return { ok: true };
   return { ok: false, status: 401, message: "Missing or invalid bearer token." };
 }
-
 
 /* ---------------------------------------------------------------- tools */
 
@@ -331,10 +329,7 @@ const SERVER_INFO = { name: "paperflow-reading", title: "PaperPlay Reading", ver
 const INSTRUCTIONS =
   "Read-only access to the PaperPlay reading library. Use list_documents or search_documents to find a document id, then get_document for metadata and get_document_sections for its readable text.";
 
-async function handleMessage(
-  message: JsonRpcRequest,
-  token?: string,
-): Promise<unknown | null> {
+async function handleMessage(message: JsonRpcRequest, token?: string): Promise<unknown | null> {
   const id = message.id ?? null;
   const method = message.method ?? "";
   const params = (message.params ?? {}) as Record<string, unknown>;
@@ -462,7 +457,9 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
 
   if (Array.isArray(payload)) {
     const responses = (
-      await Promise.all((payload as JsonRpcRequest[]).map((m) => handleMessage(m, auth.accessToken)))
+      await Promise.all(
+        (payload as JsonRpcRequest[]).map((m) => handleMessage(m, auth.accessToken)),
+      )
     ).filter((r) => r !== null);
     if (!responses.length) return new Response(null, { status: 202, headers: CORS_HEADERS });
     return jsonResponse(responses);
