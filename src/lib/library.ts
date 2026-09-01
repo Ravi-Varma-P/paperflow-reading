@@ -52,6 +52,11 @@ export async function fetchProgress(documentId: string): Promise<ProgressRow | n
   );
 }
 
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export async function saveProgress(input: {
   documentId: string;
   percent: number;
@@ -59,7 +64,12 @@ export async function saveProgress(input: {
   lastSectionId?: string | null;
   completed?: boolean;
 }): Promise<void> {
+  const userId = await currentUserId();
+  // Reading progress is private per account; anonymous visitors simply don't persist it.
+  if (!userId) return;
+
   const payload: Record<string, unknown> = {
+    user_id: userId,
     document_id: input.documentId,
     percent: Math.round(input.percent),
     completed: input.completed ?? input.percent >= 99,
@@ -70,9 +80,10 @@ export async function saveProgress(input: {
 
   const { error } = await supabase
     .from("reading_progress")
-    .upsert(payload as never, { onConflict: "document_id" });
+    .upsert(payload as never, { onConflict: "user_id,document_id" });
   if (error) throw new Error(error.message);
 }
+
 
 export async function fetchAnnotations(documentId: string): Promise<AnnotationRow[]> {
   return unwrap<AnnotationRow[]>(
