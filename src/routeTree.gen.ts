@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as DotwellKnownOauthProtectedResourceRouteImport } from './routes/[.]well-known.oauth-protected-resource'
 import { Route as ReadDocumentIdRouteImport } from './routes/read.$documentId'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 
 const IndexRoute = IndexRouteImport.update({
@@ -36,9 +38,20 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthProtectedResourceRoute =
+  DotwellKnownOauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReadDocumentIdRoute = ReadDocumentIdRouteImport.update({
   id: '/read/$documentId',
   path: '/read/$documentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
@@ -52,7 +65,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +75,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
 }
 export interface FileRoutesById {
@@ -69,7 +86,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
 }
 export interface FileRouteTypes {
@@ -79,7 +98,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/mcp'
     | '/settings'
+    | '/.well-known/oauth-protected-resource'
     | '/read/$documentId'
+    | '/.lovable/oauth/consent'
     | '/api/public/mcp'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -87,7 +108,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/mcp'
     | '/settings'
+    | '/.well-known/oauth-protected-resource'
     | '/read/$documentId'
+    | '/.lovable/oauth/consent'
     | '/api/public/mcp'
   id:
     | '__root__'
@@ -95,7 +118,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/mcp'
     | '/settings'
+    | '/.well-known/oauth-protected-resource'
     | '/read/$documentId'
+    | '/.lovable/oauth/consent'
     | '/api/public/mcp'
   fileRoutesById: FileRoutesById
 }
@@ -104,7 +129,9 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   McpRoute: typeof McpRoute
   SettingsRoute: typeof SettingsRoute
+  DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRoute
   ReadDocumentIdRoute: typeof ReadDocumentIdRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicMcpRoute: typeof ApiPublicMcpRoute
 }
 
@@ -138,11 +165,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/read/$documentId': {
       id: '/read/$documentId'
       path: '/read/$documentId'
       fullPath: '/read/$documentId'
       preLoaderRoute: typeof ReadDocumentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/mcp': {
@@ -160,7 +201,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   McpRoute: McpRoute,
   SettingsRoute: SettingsRoute,
+  DotwellKnownOauthProtectedResourceRoute:
+    DotwellKnownOauthProtectedResourceRoute,
   ReadDocumentIdRoute: ReadDocumentIdRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicMcpRoute: ApiPublicMcpRoute,
 }
 export const routeTree = rootRouteImport

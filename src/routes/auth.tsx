@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: (s: Record<string, unknown>): { next?: string } =>
+    typeof s["next"] === "string" ? { next: s["next"] } : {},
   head: () => ({
     meta: [
       { title: "Sign in · PaperPlay" },
@@ -28,8 +30,16 @@ export const Route = createFileRoute("/auth")({
   }),
 });
 
+/** Only same-origin relative paths may be used as a post-auth destination. */
+function safeNext(next?: string): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const target = safeNext(next);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,9 +47,11 @@ function AuthPage() {
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) void navigate({ to: "/" });
+      if (!data.session) return;
+      if (target) window.location.replace(target);
+      else void navigate({ to: "/" });
     });
-  }, [navigate]);
+  }, [navigate, target]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -49,7 +61,9 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: target ? window.location.origin + target : window.location.origin,
+          },
         });
         if (error) throw error;
         toast.success("Account created — you can start reading.");
@@ -57,7 +71,8 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      await navigate({ to: "/" });
+      if (target) window.location.replace(target);
+      else await navigate({ to: "/" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong.");
     } finally {

@@ -17,6 +17,7 @@
  * anonymous access — documents are never exposed without the key.
  */
 import { createClient } from "@supabase/supabase-js";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { Database } from "@/integrations/supabase/types";
 
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
@@ -40,7 +41,11 @@ function firstEnv(names: readonly string[]): string | undefined {
   return undefined;
 }
 
-function supabaseForMcp() {
+/** Direct Supabase host — the OAuth issuer must never be a proxy URL. */
+const PROJECT_REF = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
+export const OAUTH_ISSUER = `https://${PROJECT_REF}.supabase.co/auth/v1`;
+
+function supabaseForMcp(accessToken?: string) {
   const url = firstEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
   const key = firstEnv([
     "SUPABASE_PUBLISHABLE_KEY",
@@ -50,13 +55,19 @@ function supabaseForMcp() {
   if (!url || !key) throw new Error("Supabase environment is not configured");
   return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { apikey: key } },
+    global: {
+      headers: accessToken
+        ? { apikey: key, Authorization: `Bearer ${accessToken}` }
+        : { apikey: key },
+    },
   });
 }
 
 /* ----------------------------------------------------------------- auth */
 
-export type AuthResult = { ok: true } | { ok: false; status: number; message: string };
+export type AuthResult =
+  | { ok: true; accessToken?: string }
+  | { ok: false; status: number; message: string };
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -65,23 +76,41 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export function authenticate(request: Request): AuthResult {
-  const expected = runtimeEnv("MCP_API_KEY");
-  if (!expected) {
-    return {
-      ok: false,
-      status: 503,
-      message: "MCP server is not configured: MCP_API_KEY is missing on the server.",
-    };
-  }
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function jwkSet() {
+  if (!jwks) jwks = createRemoteJWKSet(new URL(`${OAUTH_ISSUER}/.well-known/jwks.json`));
+  return jwks;
+}
+
+/**
+ * Accepts either an OAuth 2.1 access token issued by the app's authorization
+ * server (Grok / Claude / ChatGPT connectors) or the static MCP_API_KEY used by
+ * scripts and curl.
+ */
+export async function authenticate(request: Request): Promise<AuthResult> {
   const header = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());
   const presented = match?.[1]?.trim();
-  if (!presented || !timingSafeEqual(presented, expected)) {
-    return { ok: false, status: 401, message: "Missing or invalid bearer token." };
+  if (!presented) return { ok: false, status: 401, message: "Missing bearer token." };
+
+  // JWT → OAuth access token from the authorization server.
+  if (presented.split(".").length === 3) {
+    try {
+      await jwtVerify(presented, jwkSet(), {
+        issuer: OAUTH_ISSUER,
+        audience: "authenticated",
+      });
+      return { ok: true, accessToken: presented };
+    } catch {
+      return { ok: false, status: 401, message: "Invalid or expired access token." };
+    }
   }
-  return { ok: true };
+
+  const expected = runtimeEnv("MCP_API_KEY");
+  if (expected && timingSafeEqual(presented, expected)) return { ok: true };
+  return { ok: false, status: 401, message: "Missing or invalid bearer token." };
 }
+
 
 /* ---------------------------------------------------------------- tools */
 
@@ -91,7 +120,7 @@ interface McpTool {
   description: string;
   inputSchema: Record<string, unknown>;
   annotations?: Record<string, unknown>;
-  handler: (args: Record<string, unknown>) => Promise<unknown>;
+  handler: (args: Record<string, unknown>, token?: string) => Promise<unknown>;
 }
 
 class ToolError extends Error {}
@@ -148,8 +177,8 @@ const listDocuments: McpTool = {
     },
     additionalProperties: false,
   },
-  handler: async (args) => {
-    const supabase = supabaseForMcp();
+  handler: async (args, token) => {
+    const supabase = supabaseForMcp(token);
     let query = supabase
       .from("documents")
       .select(DOC_FIELDS)
@@ -179,9 +208,9 @@ const getDocument: McpTool = {
     required: ["document_id"],
     additionalProperties: false,
   },
-  handler: async (args) => {
+  handler: async (args, token) => {
     const id = str(args, "document_id", true)!;
-    const supabase = supabaseForMcp();
+    const supabase = supabaseForMcp(token);
     const { data, error } = await supabase
       .from("documents")
       .select(DOC_FIELDS)
@@ -214,11 +243,11 @@ const searchDocuments: McpTool = {
     required: ["query"],
     additionalProperties: false,
   },
-  handler: async (args) => {
+  handler: async (args, token) => {
     const raw = str(args, "query", true)!;
     const term = raw.replace(/[%,()]/g, " ").trim();
     if (!term) throw new ToolError("Search query must contain searchable characters.");
-    const supabase = supabaseForMcp();
+    const supabase = supabaseForMcp(token);
     const { data, error } = await supabase
       .from("documents")
       .select(DOC_FIELDS)
@@ -256,10 +285,10 @@ const getDocumentSections: McpTool = {
     required: ["document_id"],
     additionalProperties: false,
   },
-  handler: async (args) => {
+  handler: async (args, token) => {
     const id = str(args, "document_id", true)!;
     const includeBody = args["include_body"] !== false;
-    const supabase = supabaseForMcp();
+    const supabase = supabaseForMcp(token);
     const { data, error } = await supabase
       .from("document_sections")
       .select("id,position,heading,heading_level,body")
@@ -302,7 +331,10 @@ const SERVER_INFO = { name: "paperflow-reading", title: "PaperPlay Reading", ver
 const INSTRUCTIONS =
   "Read-only access to the PaperPlay reading library. Use list_documents or search_documents to find a document id, then get_document for metadata and get_document_sections for its readable text.";
 
-async function handleMessage(message: JsonRpcRequest): Promise<unknown | null> {
+async function handleMessage(
+  message: JsonRpcRequest,
+  token?: string,
+): Promise<unknown | null> {
   const id = message.id ?? null;
   const method = message.method ?? "";
   const params = (message.params ?? {}) as Record<string, unknown>;
@@ -342,7 +374,7 @@ async function handleMessage(message: JsonRpcRequest): Promise<unknown | null> {
       if (!tool) return failure(id, -32602, `Unknown tool "${name}".`);
       const args = (params["arguments"] ?? {}) as Record<string, unknown>;
       try {
-        const value = await tool.handler(args);
+        const value = await tool.handler(args, token);
         return result(id, {
           content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
           structuredContent: value as Record<string, unknown>,
@@ -387,12 +419,16 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   if (request.method === "OPTIONS")
     return new Response(null, { status: 204, headers: CORS_HEADERS });
 
-  const auth = authenticate(request);
+  const auth = await authenticate(request);
   if (!auth.ok) {
     return jsonResponse(
       { jsonrpc: "2.0", id: null, error: { code: -32001, message: auth.message } },
       auth.status,
-      auth.status === 401 ? { "WWW-Authenticate": 'Bearer realm="paperplay-mcp"' } : {},
+      auth.status === 401
+        ? {
+            "WWW-Authenticate": `Bearer realm="paperplay-mcp", resource_metadata="${new URL("/.well-known/oauth-protected-resource", request.url).toString()}"`,
+          }
+        : {},
     );
   }
 
@@ -426,7 +462,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
 
   if (Array.isArray(payload)) {
     const responses = (
-      await Promise.all((payload as JsonRpcRequest[]).map((m) => handleMessage(m)))
+      await Promise.all((payload as JsonRpcRequest[]).map((m) => handleMessage(m, auth.accessToken)))
     ).filter((r) => r !== null);
     if (!responses.length) return new Response(null, { status: 202, headers: CORS_HEADERS });
     return jsonResponse(responses);
@@ -436,7 +472,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     return jsonResponse(failure(null, -32600, "Invalid request."), 400);
   }
 
-  const response = await handleMessage(payload as JsonRpcRequest);
+  const response = await handleMessage(payload as JsonRpcRequest, auth.accessToken);
   if (response === null) return new Response(null, { status: 202, headers: CORS_HEADERS });
   return jsonResponse(response);
 }
