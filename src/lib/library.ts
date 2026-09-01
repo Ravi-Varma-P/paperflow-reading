@@ -192,10 +192,29 @@ export async function replaceSections(documentId: string, sections: DraftSection
 }
 
 export async function fetchSyncSource(): Promise<SyncSourceRow | null> {
-  return unwrap<SyncSourceRow | null>(
-    await supabase.from("sync_sources").select("*").eq("provider", "google_docs").maybeSingle(),
+  const userId = await currentUserId();
+  // Sync configuration is per account.
+  if (!userId) return null;
+
+  const existing = unwrap<SyncSourceRow | null>(
+    await supabase
+      .from("sync_sources")
+      .select("*")
+      .eq("provider", "google_docs")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  );
+  if (existing) return existing;
+
+  return unwrap<SyncSourceRow>(
+    await supabase
+      .from("sync_sources")
+      .insert({ provider: "google_docs", display_name: "Google Docs", user_id: userId } as never)
+      .select()
+      .single(),
   );
 }
+
 
 export async function updateSyncSource(
   id: string,
