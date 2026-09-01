@@ -258,7 +258,11 @@ export async function logSyncJob(input: {
   documentsSynced: number;
   message: string;
 }): Promise<void> {
+  const userId = await currentUserId();
+  if (!userId) return;
+
   const { error } = await supabase.from("sync_jobs").insert({
+    user_id: userId,
     source_id: input.sourceId,
     status: input.status,
     documents_synced: input.documentsSynced,
