@@ -17,6 +17,7 @@
  * anonymous access — documents are never exposed without the key.
  */
 import { createClient } from "@supabase/supabase-js";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { Database } from "@/integrations/supabase/types";
 
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
@@ -40,7 +41,11 @@ function firstEnv(names: readonly string[]): string | undefined {
   return undefined;
 }
 
-function supabaseForMcp() {
+/** Direct Supabase host — the OAuth issuer must never be a proxy URL. */
+const PROJECT_REF = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
+export const OAUTH_ISSUER = `https://${PROJECT_REF}.supabase.co/auth/v1`;
+
+function supabaseForMcp(accessToken?: string) {
   const url = firstEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
   const key = firstEnv([
     "SUPABASE_PUBLISHABLE_KEY",
@@ -50,13 +55,19 @@ function supabaseForMcp() {
   if (!url || !key) throw new Error("Supabase environment is not configured");
   return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { apikey: key } },
+    global: {
+      headers: accessToken
+        ? { apikey: key, Authorization: `Bearer ${accessToken}` }
+        : { apikey: key },
+    },
   });
 }
 
 /* ----------------------------------------------------------------- auth */
 
-export type AuthResult = { ok: true } | { ok: false; status: number; message: string };
+export type AuthResult =
+  | { ok: true; accessToken?: string }
+  | { ok: false; status: number; message: string };
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -65,23 +76,41 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export function authenticate(request: Request): AuthResult {
-  const expected = runtimeEnv("MCP_API_KEY");
-  if (!expected) {
-    return {
-      ok: false,
-      status: 503,
-      message: "MCP server is not configured: MCP_API_KEY is missing on the server.",
-    };
-  }
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function jwkSet() {
+  if (!jwks) jwks = createRemoteJWKSet(new URL(`${OAUTH_ISSUER}/.well-known/jwks.json`));
+  return jwks;
+}
+
+/**
+ * Accepts either an OAuth 2.1 access token issued by the app's authorization
+ * server (Grok / Claude / ChatGPT connectors) or the static MCP_API_KEY used by
+ * scripts and curl.
+ */
+export async function authenticate(request: Request): Promise<AuthResult> {
   const header = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());
   const presented = match?.[1]?.trim();
-  if (!presented || !timingSafeEqual(presented, expected)) {
-    return { ok: false, status: 401, message: "Missing or invalid bearer token." };
+  if (!presented) return { ok: false, status: 401, message: "Missing bearer token." };
+
+  // JWT → OAuth access token from the authorization server.
+  if (presented.split(".").length === 3) {
+    try {
+      await jwtVerify(presented, jwkSet(), {
+        issuer: OAUTH_ISSUER,
+        audience: "authenticated",
+      });
+      return { ok: true, accessToken: presented };
+    } catch {
+      return { ok: false, status: 401, message: "Invalid or expired access token." };
+    }
   }
-  return { ok: true };
+
+  const expected = runtimeEnv("MCP_API_KEY");
+  if (expected && timingSafeEqual(presented, expected)) return { ok: true };
+  return { ok: false, status: 401, message: "Missing or invalid bearer token." };
 }
+
 
 /* ---------------------------------------------------------------- tools */
 
