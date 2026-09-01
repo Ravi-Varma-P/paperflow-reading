@@ -145,11 +145,16 @@ export interface CreateDocumentInput {
 }
 
 export async function createDocument(input: CreateDocumentInput): Promise<DocumentRow> {
+  const userId = await currentUserId();
+  if (!userId) throw new Error("Sign in to add documents to your library.");
+
   const doc = unwrap<DocumentRow>(
     await supabase
       .from("documents")
       .insert({
+        user_id: userId,
         title: input.title,
+
         author: input.author ?? null,
         source: input.source,
         file_type: input.fileType,
