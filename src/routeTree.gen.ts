@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as DotwellKnownOauthProtectedResourceRouteImport } from './routes/[.]well-known.oauth-protected-resource'
 import { Route as ReadDocumentIdRouteImport } from './routes/read.$documentId'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 
@@ -36,6 +37,12 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthProtectedResourceRoute =
+  DotwellKnownOauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReadDocumentIdRoute = ReadDocumentIdRouteImport.update({
   id: '/read/$documentId',
   path: '/read/$documentId',
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
 }
@@ -69,6 +78,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/mcp': typeof McpRoute
   '/settings': typeof SettingsRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRoute
   '/read/$documentId': typeof ReadDocumentIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
 }
@@ -79,6 +89,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/mcp'
     | '/settings'
+    | '/.well-known/oauth-protected-resource'
     | '/read/$documentId'
     | '/api/public/mcp'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +98,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/mcp'
     | '/settings'
+    | '/.well-known/oauth-protected-resource'
     | '/read/$documentId'
     | '/api/public/mcp'
   id:
@@ -95,6 +107,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/mcp'
     | '/settings'
+    | '/.well-known/oauth-protected-resource'
     | '/read/$documentId'
     | '/api/public/mcp'
   fileRoutesById: FileRoutesById
@@ -104,6 +117,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   McpRoute: typeof McpRoute
   SettingsRoute: typeof SettingsRoute
+  DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRoute
   ReadDocumentIdRoute: typeof ReadDocumentIdRoute
   ApiPublicMcpRoute: typeof ApiPublicMcpRoute
 }
@@ -138,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/read/$documentId': {
       id: '/read/$documentId'
       path: '/read/$documentId'
@@ -160,6 +181,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   McpRoute: McpRoute,
   SettingsRoute: SettingsRoute,
+  DotwellKnownOauthProtectedResourceRoute:
+    DotwellKnownOauthProtectedResourceRoute,
   ReadDocumentIdRoute: ReadDocumentIdRoute,
   ApiPublicMcpRoute: ApiPublicMcpRoute,
 }
