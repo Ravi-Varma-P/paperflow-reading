@@ -84,7 +84,6 @@ export async function saveProgress(input: {
   if (error) throw new Error(error.message);
 }
 
-
 export async function fetchAnnotations(documentId: string): Promise<AnnotationRow[]> {
   return unwrap<AnnotationRow[]>(
     await supabase
@@ -120,7 +119,6 @@ export async function addAnnotation(input: {
       .single(),
   );
 }
-
 
 export async function removeAnnotation(id: string): Promise<void> {
   const { error } = await supabase.from("annotations").delete().eq("id", id);
@@ -224,7 +222,6 @@ export async function fetchSyncSource(): Promise<SyncSourceRow | null> {
       .single(),
   );
 }
-
 
 export async function updateSyncSource(
   id: string,
