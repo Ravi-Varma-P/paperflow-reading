@@ -312,7 +312,8 @@ async function handleMessage(message: JsonRpcRequest): Promise<unknown | null> {
 
   switch (method) {
     case "initialize": {
-      const requested = typeof params["protocolVersion"] === "string" ? params["protocolVersion"] : "";
+      const requested =
+        typeof params["protocolVersion"] === "string" ? params["protocolVersion"] : "";
       const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(requested)
         ? requested
         : MCP_PROTOCOL_VERSION;
@@ -365,7 +366,8 @@ async function handleMessage(message: JsonRpcRequest): Promise<unknown | null> {
 export const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type, mcp-protocol-version, mcp-session-id",
+  "Access-Control-Allow-Headers":
+    "authorization, content-type, mcp-protocol-version, mcp-session-id",
   "Access-Control-Expose-Headers": "mcp-protocol-version",
   "Access-Control-Max-Age": "86400",
 };
@@ -382,7 +384,8 @@ function jsonResponse(body: unknown, status = 200, extra: Record<string, string>
 
 /** Entry point shared by every mounted MCP route. */
 export async function handleMcpRequest(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
+  if (request.method === "OPTIONS")
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
 
   const auth = authenticate(request);
   if (!auth.ok) {
@@ -396,7 +399,11 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   // No server-initiated stream and no session state to terminate.
   if (request.method === "GET" || request.method === "DELETE") {
     return jsonResponse(
-      { jsonrpc: "2.0", id: null, error: { code: -32000, message: "Use POST for JSON-RPC messages." } },
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32000, message: "Use POST for JSON-RPC messages." },
+      },
       405,
       { Allow: "POST, OPTIONS" },
     );
